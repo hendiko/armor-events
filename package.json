@@ -8,6 +8,9 @@
     "build": "gulp",
     "release": "gulp release"
   },
+  "files": [
+    "dist/*.js"
+  ],
   "keywords": [
     "armor",
     "armorjs",
