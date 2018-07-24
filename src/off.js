@@ -2,7 +2,7 @@
  * @Author: Xavier Yin 
  * @Date: 2018-07-07 01:49:28 
  * @Last Modified by: Xavier Yin
- * @Last Modified time: 2018-07-18 22:20:53
+ * @Last Modified time: 2018-07-20 11:33:35
  */
 import { reduceArgs, iterateApi, keys } from "./utils";
 import { ACTION_FORWARD, ACTION_LISTEN } from "./consts";
@@ -70,7 +70,7 @@ function offApi(store, name, callback, options) {
         (callback !== void 0 &&
           callback !== handler.callback &&
           callback !== handler.callback._callback &&
-          (forward !== void 0 && callback !== forward)) ||
+          (forward === void 0 ? true : callback !== forward)) ||
         (context && context !== handler.context)
       ) {
         // 全部解除
