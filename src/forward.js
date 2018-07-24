@@ -2,13 +2,13 @@
  * @Author: Xavier Yin 
  * @Date: 2018-07-07 01:53:05 
  * @Last Modified by: Xavier Yin
- * @Last Modified time: 2018-07-18 23:14:23
+ * @Last Modified time: 2018-07-23 16:40:31
  */
 import { iterateApi, reduceArgs, onceApi, keys, bind } from "./utils";
 import { ACTION_FORWARD } from "./consts";
 
 function forwardApi(obj, origin, dest, options) {
-  if (dest != void 0 && "object" === typeof dest) return; // dest 应该是数字、字符、void 0, null
+  if (dest != void 0 && "object" === typeof dest) return obj; // dest 应该是数字、字符、void 0, null
   if (dest === void 0) dest = null;
   let callback;
   let { listener, once } = options;
@@ -16,16 +16,13 @@ function forwardApi(obj, origin, dest, options) {
     callback = function(eventName, ...args) {
       listener.trigger(
         dest === null ? eventName : dest,
-        ...(dest === "all" ? arguments : args)
+        ...(dest === "all" ? [eventName, ...args] : args)
       );
     };
   } else {
     let _dest = dest === null ? origin : dest;
-    callback = function() {
-      listener.trigger(
-        _dest,
-        ...(_dest === "all" ? [origin, ...arguments] : arguments)
-      );
+    callback = function(...args) {
+      listener.trigger(_dest, ...(_dest === "all" ? [origin, ...args] : args));
     };
   }
   callback._forwardTo = dest;
@@ -43,6 +40,7 @@ function forwardApi(obj, origin, dest, options) {
   } else {
     listener.listenTo(obj, origin, callback);
   }
+  return obj;
 }
 
 function _forward(obj, origin, dest, listener, once) {
@@ -96,9 +94,14 @@ export function stopForwarding(obj, origin, dest) {
     let listening = listeningTo[ids[i]];
     if (!listening) break;
     if (origin == null) {
-      listening.obj.off(origin, dest, { action: ACTION_FORWARD });
+      listening.obj.off(origin, dest === void 0 ? null : dest, {
+        action: ACTION_FORWARD
+      });
     } else {
       let [map] = reduceArgs(origin, dest);
+      for (let n in map) {
+        if (map[n] === void 0) map[n] = null;
+      }
       listening.obj.off(map, { action: ACTION_FORWARD });
     }
   }
