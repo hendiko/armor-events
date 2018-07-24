@@ -6,12 +6,12 @@ import trigger from "./trigger";
 module.exports = {
   forward,
   forwardOnce,
-  stopForwarding,
-  off,
-  stopListening,
-  on,
-  once,
   listenTo,
   listenToOnce,
+  off,
+  on,
+  once,
+  stopForwarding,
+  stopListening,
   trigger
 };

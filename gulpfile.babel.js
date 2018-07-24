@@ -4,6 +4,7 @@ import pkg from "./package.json";
 import path from "path";
 import WrapperPlugin from "wrapper-webpack-plugin";
 import UglifyJSPlugin from "uglifyjs-webpack-plugin";
+import Jasmine from "jasmine";
 
 // since webpack 4.0, webpack is built with UglifyJSPlugin if its mode is production.
 var webpackConfig = {
@@ -77,3 +78,17 @@ function webpackRunner(options) {
 
 gulp.task("release", () => webpackRunner({ release: true }));
 gulp.task("default", () => webpackRunner());
+
+gulp.task("test", cb => {
+  let jasmine = new Jasmine();
+  jasmine.loadConfigFile("spec/support/jasmine.json");
+  jasmine.onComplete(passed => {
+    if (passed) {
+      console.log("All specs have passed");
+    } else {
+      console.log("At least one spec has failed");
+    }
+    cb();
+  });
+  jasmine.execute();
+});

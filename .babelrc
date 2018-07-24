@@ -1,3 +1,13 @@
 {
-  "presets": ["es2015"]
+  "presets": ["es2015"],
+  "plugins": [
+    [
+      "module-resolver",
+      {
+        "alias": {
+          "armor-events": "./dist/armor-events"
+        }
+      }
+    ]
+  ]
 }
