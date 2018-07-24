@@ -2,7 +2,7 @@
  * @Author: Xavier Yin 
  * @Date: 2018-07-07 01:49:28 
  * @Last Modified by: Xavier Yin
- * @Last Modified time: 2018-07-20 11:33:35
+ * @Last Modified time: 2018-07-24 10:35:01
  */
 import { reduceArgs, iterateApi, keys } from "./utils";
 import { ACTION_FORWARD, ACTION_LISTEN } from "./consts";
@@ -50,7 +50,9 @@ function offApi(store, name, callback, options) {
         if (
           forward === void 0 ||
           (context && context !== handler.context) ||
-          (callback !== forward && callback !== handler.callback)
+          (callback !== void 0 &&
+            callback !== forward &&
+            callback !== handler.callback)
         ) {
           keep = true;
         }

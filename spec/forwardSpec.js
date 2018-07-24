@@ -2,7 +2,7 @@
  * @Author: Xavier Yin 
  * @Date: 2018-07-23 17:02:32 
  * @Last Modified by: Xavier Yin
- * @Last Modified time: 2018-07-23 17:07:11
+ * @Last Modified time: 2018-07-24 10:40:56
  */
 import ArmorEvents from "armor-events";
 
@@ -164,5 +164,42 @@ describe("Test forward/forwardOnce method", () => {
     bar.trigger("hello world", "come on 2");
     expect(foo.hello).toBe("come on 2");
     expect(foo.count).toBe(3);
+  });
+});
+
+describe("Test forward/forwardOnce method", () => {
+  let foo, bar;
+
+  let callback = function(msg) {
+    this.count++;
+    this.msg = `${this.id || ""}:${this.count}:${msg}`;
+  };
+
+  beforeEach(() => {
+    foo = Object.assign({ id: "foo", count: 0 }, ArmorEvents);
+    bar = Object.assign({ id: "bar" }, ArmorEvents);
+  });
+
+  afterEach(() => {
+    foo.off();
+    foo.stopForwarding();
+    bar.off();
+  });
+
+  it("foo.stopForwarding(bar, name)", () => {
+    foo.forward(bar, "x", "y");
+    foo.on("y", callback);
+    bar.trigger("x", 1);
+    expect(foo.msg).toBe("foo:1:1");
+    foo.stopForwarding(bar, "x");
+    bar.trigger("x", 2);
+    expect(foo.msg).toBe("foo:1:1");
+
+    foo.forward(foo, "x", "y");
+    foo.trigger("x", 3);
+    expect(foo.msg).toBe("foo:2:3");
+    foo.stopForwarding(foo);
+    foo.trigger("x", 4);
+    expect(foo.msg).toBe("foo:2:3");
   });
 });
