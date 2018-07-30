@@ -1,3 +1,8 @@
+# v0.1.4
+
+1.  修复 off(name) 中参数 name 为空字符串时会导致无限定事件名解绑的发生（name 应该只有等于 undefined 或 null 时才无限定事件名解绑）。
+2.  修复 off(null, void 0, {action: 'forward'}) 会导致所有事件被解除的 BUG，应该只解除所有事件转发。
+
 # v0.1.3
 
 1.  增加 off 测试用例，以及增补 forward 测试用例。
