@@ -2,7 +2,7 @@
  * @Author: Xavier Yin 
  * @Date: 2018-07-07 01:49:28 
  * @Last Modified by: Xavier Yin
- * @Last Modified time: 2018-07-24 10:35:01
+ * @Last Modified time: 2018-07-31 15:36:53
  */
 import { reduceArgs, iterateApi, keys } from "./utils";
 import { ACTION_FORWARD, ACTION_LISTEN } from "./consts";
@@ -23,7 +23,12 @@ function offApi(store, name, callback, options) {
   let { context, listeners, action } = options;
 
   // 解除所有监听关系，同时清除自己绑定的事件（通过返回值 undefined 来实现）
-  if (!name && callback === void 0 && !context) {
+  if (
+    name == null &&
+    callback === void 0 &&
+    context == null &&
+    action == null
+  ) {
     let ids = keys(listeners);
     for (; i < ids.length; i++) {
       listening = listeners[ids[i]];
@@ -33,7 +38,7 @@ function offApi(store, name, callback, options) {
     return;
   }
 
-  let names = name ? [name] : keys(store);
+  let names = name != null ? [name] : keys(store);
   for (; i < names.length; i++) {
     name = names[i];
     let handlers = store[name];

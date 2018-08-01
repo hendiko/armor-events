@@ -2,7 +2,7 @@
  * @Author: Xavier Yin 
  * @Date: 2018-07-23 17:02:32 
  * @Last Modified by: Xavier Yin
- * @Last Modified time: 2018-07-24 10:40:56
+ * @Last Modified time: 2018-07-31 12:11:18
  */
 import ArmorEvents from "armor-events";
 
@@ -164,6 +164,16 @@ describe("Test forward/forwardOnce method", () => {
     bar.trigger("hello world", "come on 2");
     expect(foo.hello).toBe("come on 2");
     expect(foo.count).toBe(3);
+  });
+
+  it('stopForwarding("")', () => {
+    foo.forward(bar, "", "hello");
+    foo.forward(bar, "hello");
+    bar.trigger("", 1);
+    expect(foo.count).toBe(1);
+    foo.stopForwarding(bar, "");
+    bar.trigger("hello", 2);
+    expect(foo.count).toBe(2);
   });
 });
 

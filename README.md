@@ -2,37 +2,105 @@
 
 `armor-events` is a library in javascript to manange events, which is inspired by BackboneJS.
 
-# 与 Backbone.Events 差异
+# Installation
 
-## trigger(name, ...args)
+`npm install armor-events`
 
-在 `armor-events` 中，当函数签名为 `trigger(object, ...args)` 格式时，`args` 被看做事件回调函数的公共参数，你可以在 `object` 中指定事件的定制参数，定制参数会被追加到 `args` 末尾，一并传递给事件回调函数。这个特性是 `Backbone.Events` 的 `trigger` 方法所不支持的。
-
-例如：
+# Usage
 
 ```js
-import events from "armor-events";
-let x = Object.assign({}, events);
-x.on("hello", function() {
-  console.log(arguments);
-});
-x.trigger({ hello: "world" }, "welcome"); // 输出 ['welcome', 'world']
+import ArmorEvents from "armor-events";
+let foo = Object.assign({}, ArmorEvents);
+let bar = Object.assign({}, ArmorEvents);
+
+let callback = function(name) {
+  console.log(name);
+};
+
+foo.on("hello world", callback);
+foo.trigger("hello", "say hi"); // print 'say hi'
+
+foo.listenTo(bar, "hello", callback);
+bar.trigger("hello", "this is bar"); // print 'this is bar'
+
+foo.forward(bar, "world", "hello");
+bar.trigger("world", "this is bar"); // print 'this is bar'
+
+foo.stopListening();
+foo.stopForwarding();
+foo.off();
 ```
 
-`armor-events` 执行 `trigger('all')` 时只会触发 `all` 事件一次，而 `Backbone.Events` 会触发两次。
+# API
 
-例如：
+## [on](./docs/api/zh/on.md)
 
-```js
-x.on("all", function() {
-  console.log(123);
-});
+Bind events onto object.
 
-// armor-events 只会打印一次 123
-// Backbone.Events 会打印两次 123
-x.trigger("all");
-```
+- `on(event:string, callback:function, [context:object]`
+- `on(map:object, [context:object])`
 
-## listenTo(obj, name, callback, context)
+## [off](./docs/api/zh/off.md)
 
-`armor-events` 支持在 `listenTo` 方法中传入 `context`，`Backbone.Events` 不支持。
+Unbind events from object.
+
+- `off([event:string], [callback:function], [options:object])`
+- `off([event:string], [destination:string], [opitons:object])`
+
+## [trigger](./docs/api/zh/trigger.md)
+
+- `trigger(event:string, [...args])`
+- `trigger(map:object, [...args])`
+
+## [once](./docs/api/zh/once.md)
+
+Bind once events onto object.
+
+- `once(event:string, callback:function, [context:object]`
+- `once(map:object, [context:object])`
+
+## [listenTo](./docs/api/zh/listenTo.md)
+
+Listen to other object.
+
+- `listenTo(target:object, event:string, callback:function, [context:object])`
+- `listenTo(target:object, map:object, [context:object])`
+
+## [stopListening](./docs/api/zh/stopListening.md)
+
+Stop listening to other object.
+
+- `stopListening([target:object], [event:string], [callback:function], [context:object])`
+- `stopListening([target:object], map:object, [context:object])`
+
+## [listenToOnce](./docs/api/zh/listenToOnce.md)
+
+Listen once to other object.
+
+- `listenToOnce(target:object, event:string, callback:function, [context:object])`
+- `listenToOnce(target:object, map:object, [context:object])`
+
+## [forward](./docs/api/zh/forward.md)
+
+Forward events from other object.
+
+- `forward(target:object, [origin:string], [dest:string])`
+- `forward(target:object, map:object)`
+
+## [forwardOnce](./docs/api/zh/forwardOnce.md)
+
+Forward once events from other object.
+
+- `forwardOnce(target:object, [origin:string], [dest:string])`
+- `forwardOnce(target:object, map:object)`
+
+## [stopForwarding](./docs/api/zh/stopForwarding.md)
+
+Stop forwarding events from other object.
+
+- `stopForwarding([target:object], [origin:string], [dest:string])`
+- `stopForwarding([target:object], map:object)`
+
+# Compare with Backbone.Events
+
+[ArmorEvents vs Backbone.Events](./docs/diff.md)
