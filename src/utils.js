@@ -2,10 +2,13 @@
  * @Author: Xavier Yin 
  * @Date: 2018-07-06 12:06:35 
  * @Last Modified by: Xavier Yin
- * @Last Modified time: 2018-07-18 23:21:35
+ * @Last Modified time: 2018-08-10 15:40:22
  */
 
 export const EVENT_SPLITTER = /\s+/;
+export const trim = function(str) {
+  return str.replace(/(^\s+)|(\s+$)/g, "");
+};
 
 // transform arguments into [object, options]
 export function reduceArgs(key, value, options) {
@@ -49,7 +52,7 @@ export function iterateApi(iteratee, store, mapKey, mapValue, opts) {
       store = iterateApi(iteratee, store, key, mapKey[key], mapValue);
     }
   } else if ("string" === typeof mapKey && EVENT_SPLITTER.test(mapKey)) {
-    names = mapKey.split(EVENT_SPLITTER);
+    names = trim(mapKey).split(EVENT_SPLITTER);
     for (key in names) {
       store = iteratee(store, names[key], mapValue, opts);
     }
