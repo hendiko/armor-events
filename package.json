@@ -1,6 +1,6 @@
 {
   "name": "armor-events",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "The events management library",
   "main": "dist/armor-events.js",
   "scripts": {

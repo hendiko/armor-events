@@ -2,7 +2,7 @@
  * @Author: Xavier Yin
  * @Date: 2019-09-23 22:25:32
  * @Last Modified by: Xavier Yin
- * @Last Modified time: 2019-09-24 00:25:48
+ * @Last Modified time: 2019-09-25 14:47:10
  */
 
 import { destroy } from "./destroy";
@@ -14,9 +14,11 @@ function filterByEvents(owner, events) {
   let _handlers = [];
   for (let i = 0; i < events.length; i++) {
     let queue = _events[events[i]];
-    for (let h = 0; h < queue.length; h++) {
-      let handler = handlers[queue[h]];
-      if (handler) _handlers.push(handler);
+    if (queue) {
+      for (let h = 0; h < queue.length; h++) {
+        let handler = handlers[queue[h]];
+        if (handler) _handlers.push(handler);
+      }
     }
   }
   return _handlers;
