@@ -1,123 +1,60 @@
 /*
- * @Author: Xavier Yin 
- * @Date: 2018-07-06 14:11:26 
+ * @Author: Xavier Yin
+ * @Date: 2019-09-20 16:50:33
  * @Last Modified by: Xavier Yin
- * @Last Modified time: 2018-07-18 23:14:57
+ * @Last Modified time: 2019-09-24 15:22:06
  */
+import { uniqueId, isObject, isFunction, makeEventList, keys } from "./utils";
 
-import { createListenId, Listening } from "./consts";
-import { iterateApi, reduceArgs, onceApi, bind } from "./utils";
-
-/**
- *
- * @param {object} events 事件存储空间
- * @param {string} name 事件名
- * @param {function} callback 事件回调函数
- * @param {object} options
- */
-function bindApi(events, name, callback, options) {
-  if (callback) {
-    let handlers = events[name] || (events[name] = []);
-    let { context, ctx, listening } = options;
-    if (listening) listening.count++;
-    handlers.push({
-      callback,
-      context,
-      ctx: context || ctx,
-      listening
-    });
-  }
-  return events;
-}
-
-/**
- * 绑定事件
- *
- * arguments 1:
- * @param {string} name 事件名称
- * @param {function} callback 事件回调
- * @param {object} context 事件回调上下文
- *
- * arguments 2:
- * @param {object} name 事件名称与回调函数
- * @param {object} callback 事件回调的上下文
- */
-export function on(name, callback, context) {
-  let [eventCallbackMap, _context] = reduceArgs(name, callback, context);
-  this._events = iterateApi(bindApi, this._events || {}, eventCallbackMap, {
-    context: _context,
-    ctx: this
+function onApi(owner, event, handle, ctx, once, listener) {
+  let { events, handlers } = owner._armorEvents;
+  let id = uniqueId("h");
+  let handler = (handlers[id] = {
+    id,
+    event,
+    handle,
+    ctx,
+    once: !!once,
+    handleType: isFunction(handle) ? 0 : 1 // 0 - 回调，1 - 转发
   });
-  return this;
+  if (isObject(listener)) handler.listener = listener;
+
+  let queue = events[event] || (events[event] = []);
+  queue.push(id);
+  return id;
 }
 
-/**
- * 绑定一次性事件
- *
- * arguments 1:
- * @param {string} name 事件名称
- * @param {function} callback 事件回调
- * @param {object} context 事件回调上下文
- *
- * arguments 2:
- * @param {object} name 事件名称与回调函数
- * @param {object} callback 事件回调的上下文
- */
-export function once(name, callback, context) {
-  let [map, _context] = reduceArgs(name, callback, context);
-  let eventCallbackMap = iterateApi(onceApi, {}, map, bind(this.off, this));
-  return this.on(eventCallbackMap, _context);
-}
-
-/**
- *
- * arguments 1:
- * @param {object} obj 被监听对象
- * @param {string} name 事件名称
- * @param {function} callback 事件回调
- * @param {object} context [new] 事件回调上下文
- *
- * arguments 2:
- * @param {object} obj 被监听对象
- * @param {object} name 事件名称与回调函数
- * @param {object} callback 事件回调的上下文
- */
-export function listenTo(obj, name, callback, context) {
-  if (!obj) return this;
-  let objId = obj._listenId || (obj._listenId = createListenId());
-  let listeningTo = this._listeningTo || (this._listeningTo = {});
-  let listening = listeningTo[objId];
-  if (!listening) {
-    let id = this._listenId || (this._listenId = createListenId());
-    listening = listeningTo[objId] = Listening({
-      listenId: id,
-      listeningTo,
-      target: obj,
-      targetListenId: objId,
-      count: 0
-    });
-    let listeners = obj._listeners || (obj._listeners = {});
-    listeners[id] = listening;
+function onEvents(owner, events, handles, ctx, once) {
+  let names = makeEventList(events);
+  handles = makeEventList(handles, true);
+  let ids = [];
+  if (names.length && handles.length) {
+    for (let m = 0; m < names.length; m++) {
+      for (let n = 0; n < handles.length; n++) {
+        if (handles[n] !== "all" && handles[n] !== names[m]) {
+          ids.push(onApi(owner, names[m], handles[n], ctx || owner, once));
+        }
+      }
+    }
   }
-
-  let [map, _context] = reduceArgs(name, callback, context);
-  obj._events = iterateApi(bindApi, obj._events || {}, map, {
-    context: _context,
-    ctx: this,
-    listening
-  });
-
-  return this;
+  return ids;
 }
 
-export function listenToOnce(obj, name, callback, context) {
-  if (!obj) return this;
-  let [map, _context] = reduceArgs(name, callback, context);
-  let eventCallbackMap = iterateApi(
-    onceApi,
-    {},
-    map,
-    bind(this.stopListening, this, obj)
-  );
-  return this.listenTo(obj, eventCallbackMap, _context);
+function on(owner, events, handles, ctx, once) {
+  let handlerIds = [];
+  if (isObject(events)) {
+    once = ctx;
+    ctx = handles;
+    let names = keys(events);
+    for (let i = 0; i < names.length; i++) {
+      handlerIds = handlerIds.concat(
+        onEvents(owner, names[i], events[names[i]], ctx, once)
+      );
+    }
+  } else {
+    handlerIds = onEvents(owner, events, handles, ctx, once);
+  }
+  return handlerIds;
 }
+
+export { on, onApi };

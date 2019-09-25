@@ -1,106 +1,213 @@
-# Armor Events
+# 简介
 
-`armor-events` is a library in javascript to manange events, which is inspired by BackboneJS.
+`armor-events` 是一个为任意对象提供事件能力的 JavaScript 库。
 
-# Installation
+# 安装
 
-`npm install armor-events`
+```js
+npm install armor-events
+```
 
-# Usage
+# 用法
+
+`armor-events` 提供了 8 个 Api 用于操作事件，分别是：
+
+| API             | 释义               |
+| --------------- | ------------------ |
+| `on`            | 事件绑定           |
+| `once`          | 一次性事件绑定     |
+| `listenTo`      | 事件监听           |
+| `listenToOnce`  | 一次性事件监听     |
+| `stopListening` | 停止事件监听       |
+| `off`           | 事件解绑           |
+| `trigger`       | 触发事件，同步响应 |
+| `triggerAsync`  | 触发事件，异步响应 |
+
+`ArmorEvents` 使用方法主要分为两种：
+
+#### 一、创建纯事件对象
 
 ```js
 import ArmorEvents from "armor-events";
-let foo = Object.assign({}, ArmorEvents);
-let bar = Object.assign({}, ArmorEvents);
 
-let callback = function(name) {
-  console.log(name);
-};
-
-foo.on("hello world", callback);
-foo.trigger("hello", "say hi"); // print 'say hi'
-
-foo.listenTo(bar, "hello", callback);
-bar.trigger("hello", "this is bar"); // print 'this is bar'
-
-foo.forward(bar, "world", "hello");
-bar.trigger("world", "this is bar"); // print 'this is bar'
-
-foo.stopListening();
-foo.stopForwarding();
-foo.off();
+// 创建一个可操作事件的对象
+let events = ArmorEvents();
 ```
+
+像 `events` 这种纯事件对象，一般用来充当事件分发器。
+
+#### 二、混入已有对象
+
+```js
+// 将事件 Api 混入一个任意对象，使之具有操作事件的能力
+let foo = {
+  doSomething() {}
+};
+ArmorEvents(foo);
+```
+
+操作事件示例：
+
+```js
+// 事件绑定
+let unbindSomeEvent = foo.on("some-event", foo.doSomething);
+
+// 事件监听
+let unbindAnotherEvent = foo.listenTo(events, "another-event", foo.doSomething);
+
+// foo.doSomething() 将被调用
+events.trigger("another-event");
+
+// 解除事件监听
+foo.stopListening(events, "another-event");
+// 或者调用解除监听函数
+unbindAnotherEvent();
+
+// 解除事件绑定
+foo.off("some-event");
+// 或者调用解绑函数解除绑定
+unbindSomeEvent();
+```
+
+> 注意：`armor-events` 提供的函数 `ArmorEvents(obj)` 本身具有事件能力，可以直接作为事件分发器使用。
+
+```js
+ArmorEvents.on("something", doSomething);
+
+ArmorEvents.trigger("something");
+```
+
+以下 `ArmorEvents` 使用方式都是可行的：
+
+```js
+// 作为类，使用 new 操作符
+let bar = new ArmorEvents({ name: "bar" });
+// 作为工厂函数
+let bee = ArmorEvents({ name: "bee" });
+// 作为 Api Provider
+let noo = Object.assign({ name: "noo" }, ArmorEvents);
+```
+
+> 当 `ArmorEvents` 作为 Api Provider 时应注意，如果 `ArmorEvents` 已经充当了事件分发器，当使用 `Object.assign({}, ArmorEvents)` 时，`ArmorEvents` 自身已绑定的事件会一并复制到新对象上，因此应当避免 `ArmorEvents` 同时充当事件分发器和 Api Provider。
 
 # API
 
-## [on](./docs/api/zh/on.md)
+## on(events, handles, ctx)
 
-Bind events onto object.
+- `@param {string|symbol|number|array|object} events` 事件名称
+- `@param {string|symbol|number|array|function} handles` 事件响应
+- `@param {object} [ctx]` 事件回调函数上下文
 
-- `on(event:string, callback:function, [context:object]`
-- `on(map:object, [context:object])`
+在 `armor-events` 中，单个事件名称(event)只能是一个 Symbol 对象，或者是一个不含空格的非空字符串。单个事件响应(handle)只能是一个回调函数，或者是一个事件名称(event)。
 
-## [off](./docs/api/zh/off.md)
+参数 `events` 可以是 string、symbol、number、array、object 中任意一种。它用来指定需要绑定的事件名称，它最终会转换成一个或多少事件名称(event)。
 
-Unbind events from object.
+| `events` 参数值                              | 转换后事件名称                                    |
+| -------------------------------------------- | ------------------------------------------------- |
+| "foo bar lee"                                | ["foo", "bar", "lee"]                             |
+| ["foo bar", Symbol(0), 100, ["hello world"]] | ["foo", "bar", Symbol(0), "100", "hello", "world] |
 
-- `off([event:string], [callback:function], [options:object])`
-- `off([event:string], [destination:string], [opitons:object])`
+> 如果参数 `events` 是一个 Plan Object，那么 `on` 接收的参数格式为 `on({[events]: handles}, ctx)`。
 
-## [trigger](./docs/api/zh/trigger.md)
+参数 `handles` 可以是 string、symbol、number、array、function 中任意一种，无论是哪一个类型的参数，它最后都会转换为一个或多个事件名称或回调函数。
 
-- `trigger(event:string, [...args])`
-- `trigger(map:object, [...args])`
+如果 `handle` 是一个回调函数，当响应的事件被触发时，该回调函数会被调用。如果 `handle` 是一个事件名称，当响应的事件被触发时，事件参数会被转发到该 `handle` 事件上。
 
-## [once](./docs/api/zh/once.md)
+```js
+foo.on("hello", [foo.doSomething, "world"]);
 
-Bind once events onto object.
+// 此时 foo.doSomething 被调用，
+// 然后 foo 触发 "world" 事件，即 foo.trigger("world", 200);
+foo.trigger("hello", 200);
+```
 
-- `once(event:string, callback:function, [context:object]`
-- `once(map:object, [context:object])`
+可选参数 `ctx` 用作 `handle` 为回调函数时的上下文。如果不传，则默认为当前 Api 的上下文。即上例中 `doSomething` 被调用时，上下文为 `foo`。
 
-## [listenTo](./docs/api/zh/listenTo.md)
+`on()` 方法调用后返回一个函数，该函数是一个事件销毁函数，当调用该销毁函数时，本次进行的所有事件绑定都将被解除。
 
-Listen to other object.
+```js
+// 绑定事件
+let destroy = foo.on("hello world", foo.doSomething);
 
-- `listenTo(target:object, event:string, callback:function, [context:object])`
-- `listenTo(target:object, map:object, [context:object])`
+// 解绑事件
+destroy();
+```
 
-## [stopListening](./docs/api/zh/stopListening.md)
+## once(events, handles, ctx)
 
-Stop listening to other object.
+参数及用法与 `on` 相同，只是 `once()` 绑定的事件在被响应一次后会自动解绑。
 
-- `stopListening([target:object], [event:string], [callback:function], [context:object])`
-- `stopListening([target:object], map:object, [context:object])`
+## listenTo(target, events, handles, ctx)
 
-## [listenToOnce](./docs/api/zh/listenToOnce.md)
+必填参数 `target` 是被监听对象，作为被监听对象，它必须同样具有 ArmorEvents 事件 Api。
 
-Listen once to other object.
+当 `target` 对象上触发了指定的 `events`，要么作为回调函数的 handle 被调用，要么事件将转发到 `listener` 上。
 
-- `listenToOnce(target:object, event:string, callback:function, [context:object])`
-- `listenToOnce(target:object, map:object, [context:object])`
+`listenTo()` 返回值是一个事件销毁函数。
 
-## [forward](./docs/api/zh/forward.md)
+> 其他参数 `events`, `handles`, `ctx` 与 `on` Api 参数相同。
 
-Forward events from other object.
+```js
+let destroy = foo.listenTo(bar, "hello", [foo.doSomething, "world"]);
 
-- `forward(target:object, [origin:string], [dest:string])`
-- `forward(target:object, map:object)`
+bar.trigger("hello", 200);
 
-## [forwardOnce](./docs/api/zh/forwardOnce.md)
+// 当事件触发后
+// foo.doSomething(200);
+// foo.trigger("world", 200);
 
-Forward once events from other object.
+destroy(); // 解除所有监听
+```
 
-- `forwardOnce(target:object, [origin:string], [dest:string])`
-- `forwardOnce(target:object, map:object)`
+## listenToOnce(target, events, handles, ctx)
 
-## [stopForwarding](./docs/api/zh/stopForwarding.md)
+参见 `listenTo` Api，事件响应一次后自动解除监听。
 
-Stop forwarding events from other object.
+## off(events, handles, ctx)
 
-- `stopForwarding([target:object], [origin:string], [dest:string])`
-- `stopForwarding([target:object], map:object)`
+- `@param {string|symbol|number|array} [events]`
+- `@param {string|symbol|number|array|function} [handles]`
+- `@param {object} [ctx]`
 
-# Compare with Backbone.Events
+可选参数 `events`, `handles`, `ctx` 是用来指定解绑事件的匹配条件， 如果它们为 `undefined` 或 `null`，则表示匹配任意条件。
 
-[ArmorEvents vs Backbone.Events](./docs/diff.md)
+例如：
+
+```js
+// 表示被解除的事件必须同时满足以下条件：
+// 1. 事件名称必须是 "hello" 或 "world"；
+// 2. 事件响应必须是 foo.doSomething 函数；
+// 3. 事件回调上下文必须是 foo。
+foo.off("hello world", foo.doSomething, foo);
+```
+
+注意：`off()` 解除的事件绑定包含 `listener` 调用 `stopListening()` 的效果。
+
+```js
+foo.listenTo(bar, "hello", foo.doSomething);
+
+// bar 在解除自身所有的 hello 事件响应时，一并也解除了 foo 对 bar 的 hello 事件监听。
+bar.off("hello");
+```
+
+## stopListening(target, events, handles, ctx)
+
+停止监听。
+
+参数 `target` 被监听对象，如果 `target` 为 `undefined` 或 `null`，则针对所有被监听对象进行筛选。
+
+> 其他参数 `events`, `handles`, `ctx` 与 `off` Api 同。
+
+## trigger(events, ...args)
+
+- `@param {string|symbol|number|array} events` 事件名称
+- `@param {...any} args` 任意参数
+
+触发事件并提供事件响应参数，所有事件响应是同步逐一调用。
+
+## triggerAsync(events, ...args)
+
+- `@param {string|symbol|number|array} events` 事件名称
+- `@param {...any} args` 任意参数
+
+触发事件并提供事件响应参数，所有事件响应是异步（使用 setTimeout）逐一调用。

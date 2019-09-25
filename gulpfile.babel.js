@@ -6,19 +6,21 @@ import WrapperPlugin from "wrapper-webpack-plugin";
 import UglifyJSPlugin from "uglifyjs-webpack-plugin";
 import Jasmine from "jasmine";
 
+const isBeta = false;
+
 // since webpack 4.0, webpack is built with UglifyJSPlugin if its mode is production.
 var webpackConfig = {
   version: pkg.version,
 
   name: pkg.name,
 
-  entry: "src/index.js",
-
   build(options) {
     let { mode = "none" } = options || {};
     let isDev = mode !== "production";
     let outputFilename = `${this.name}.js`;
     let outputPath = path.join(__dirname, isDev ? "build" : "dist");
+
+    let entry = isBeta ? "./src/beta/index.js" : "./src/index.js";
 
     let plugins = [
       new WrapperPlugin({
@@ -33,6 +35,7 @@ var webpackConfig = {
 
     return {
       mode: "none", // it should not set mode into production, because the builtin uglifyjs plugin would remove header from bundle file that is added by WrapperPlugin.
+      entry,
       output: {
         path: outputPath,
         filename: outputFilename,
@@ -81,7 +84,7 @@ gulp.task("default", () => webpackRunner());
 
 gulp.task("test", cb => {
   let jasmine = new Jasmine();
-  jasmine.loadConfigFile("spec/support/jasmine.json");
+  jasmine.loadConfigFile("spec/beta/jasmine.json");
   jasmine.onComplete(passed => {
     if (passed) {
       console.log("All specs have passed");
