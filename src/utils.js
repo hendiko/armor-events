@@ -1,83 +1,118 @@
 /*
- * @Author: Xavier Yin 
- * @Date: 2018-07-06 12:06:35 
+ * @Author: Xavier Yin
+ * @Date: 2019-09-20 15:57:07
  * @Last Modified by: Xavier Yin
- * @Last Modified time: 2018-08-10 15:40:22
+ * @Last Modified time: 2019-09-24 18:16:18
  */
 
-export const EVENT_SPLITTER = /\s+/;
-export const trim = function(str) {
-  return str.replace(/(^\s+)|(\s+$)/g, "");
-};
-
-// transform arguments into [object, options]
-export function reduceArgs(key, value, options) {
-  let obj = {};
-  if ("object" === typeof key && key != void 0) {
-    obj = key;
-    options = value;
-  } else if (null == key) {
-    options = value;
-  } else {
-    obj[key] = value;
-  }
-  return [obj, options];
+// 是否是 Symbol 对象
+function isSymbol(obj) {
+  return "symbol" === typeof obj;
 }
 
-function _once(fn) {
-  let called = false;
-  return function() {
-    if (called) return;
-    called = true;
-    return fn.apply(this, arguments);
-  };
+function isFunction(obj) {
+  return "function" === typeof obj;
 }
 
-export function onceApi(store, name, callback, destroyer) {
-  if (callback) {
-    let once = (store[name] = _once(function() {
-      destroyer(name, once);
-      callback.apply(this, arguments);
-    }));
-    once._callback = callback;
-  }
-  return store;
+function isArray(obj) {
+  return obj instanceof Array;
 }
 
-export function iterateApi(iteratee, store, mapKey, mapValue, opts) {
-  let key;
-  let names;
-  if (arguments.length < 5) {
-    for (key in mapKey) {
-      store = iterateApi(iteratee, store, key, mapKey[key], mapValue);
+function isString(obj) {
+  return "string" === typeof obj;
+}
+
+function includes(arr, item) {
+  return arr.indexOf(item) > -1;
+}
+
+function trim(str) {
+  return str.replace(/^\s+|\s+$/g, "");
+}
+
+function splitByWhitespace(str) {
+  return trim(str).split(/\s+/);
+}
+
+function hasNoWhitespace(str) {
+  return !/\s/.test(str);
+}
+
+function addUniqueItem(arr, item) {
+  if (!includes(arr, item)) arr.push(item);
+}
+
+function isNumber(obj) {
+  return "number" === typeof obj;
+}
+
+function isObject(obj) {
+  return obj && typeof obj === "object" && !isArray(obj);
+}
+
+/**
+ * 整理事件名称，返回事件列表
+ * @param {string|array|number|symbol} name 事件名称
+ * @param {boolean} allowFn 列表中是否允许包含 Function 类型
+ * @param {array} [result] 事件列表（内部递归时传入）
+ *
+ * 事件名称参数可以是 string|array|number|symbol 中任意一种，
+ * 但合法的单一事件名称必须是 symbol 或者不含空格的非空字符串。
+ */
+function makeEventList(name, allowFn, result = []) {
+  if (isString(name)) {
+    name = trim(name);
+    if (name) {
+      if (hasNoWhitespace(name)) {
+        addUniqueItem(result, name);
+      } else {
+        makeEventList(splitByWhitespace(name), allowFn, result);
+      }
     }
-  } else if ("string" === typeof mapKey && EVENT_SPLITTER.test(mapKey)) {
-    names = trim(mapKey).split(EVENT_SPLITTER);
-    for (key in names) {
-      store = iteratee(store, names[key], mapValue, opts);
+  } else if (isArray(name)) {
+    for (let i = 0; i < name.length; i++) {
+      makeEventList(name[i], allowFn, result);
     }
-  } else {
-    store = iteratee(store, mapKey, mapValue, opts);
+  } else if (isNumber(name)) {
+    makeEventList(name + "", allowFn, result);
+  } else if (isSymbol(name)) {
+    addUniqueItem(result, name);
+  } else if (allowFn && isFunction(name)) {
+    addUniqueItem(result, name);
   }
-  return store;
+  return result;
 }
 
-let incre = 0;
-export function uniqueId(salt) {
-  return salt + incre++;
-}
-
-export function keys(obj) {
-  let names = [];
-  if (!obj) return names;
+// 获取 Plain Object 所有 property 名称（包括 Symbol Key）
+function keys(obj) {
+  let names = Object.getOwnPropertySymbols
+    ? Object.getOwnPropertySymbols(obj)
+    : [];
   for (let k in obj) {
-    names.push(k);
+    if (obj.hasOwnProperty(k)) {
+      names.push(k);
+    }
   }
   return names;
 }
 
-export function bind(fn, ctx, ...args) {
-  return function() {
-    return fn.apply(ctx, [...args, ...arguments]);
-  };
+function noop() {}
+
+let cacheId = {};
+
+// 生成唯一id
+function uniqueId(salt) {
+  if (!cacheId.hasOwnProperty(salt)) cacheId[salt] = 0;
+  return salt + cacheId[salt]++;
 }
+
+export {
+  includes,
+  isFunction,
+  isObject,
+  isSymbol,
+  keys,
+  makeEventList,
+  noop,
+  uniqueId
+};

@@ -1,3 +1,17 @@
+# v1.0.0
+
+1. 重写事件能力，重构了内部实现。
+2. 移除 `forward`, `forwardOnce`, `stopForwarding` 三个 API，事件转发通过 `on` 或 `listenTo` 实现。
+3. 增加 `triggerAsync` 方法，支持异步调用回调函数。
+4. `armor-events` 模块导出的 `ArmorEvents` 由 Plain Object 变成一个函数。
+5. `on/once`, `listenTo/listenToOnce` 返回值为事件销毁函数。
+6. 单个事件名称增加支持 Symbol 类型。
+7. 事件 API 变化：
+   7.1. `on/once/listenTo/listenToOnce` 方法参数兼容上个版本，同时增加了事件转发。
+   7.2. `off()` 第三个参数只能是 `ctx` 或 `undefined` 和 `null`。不再支持 `options` 作为第三个参数。
+   7.3. 不再支持 `trigger(map:object, ..args)` 传参。
+   7.4. 不再支持 `stopListening([target:object], map:object, [context:object])` 传参。
+
 # v0.1.5
 
 1.  修复以空格分隔多事件参数，没有去除首尾空白字符。

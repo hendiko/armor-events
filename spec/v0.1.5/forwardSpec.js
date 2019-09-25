@@ -1,10 +1,10 @@
 /*
- * @Author: Xavier Yin 
- * @Date: 2018-07-23 17:02:32 
+ * @Author: Xavier Yin
+ * @Date: 2018-07-23 17:02:32
  * @Last Modified by: Xavier Yin
- * @Last Modified time: 2018-07-31 12:11:18
+ * @Last Modified time: 2019-09-24 17:54:42
  */
-import ArmorEvents from "armor-events";
+import ArmorEvents from "../../dist/armor-events_0.1.5";
 
 describe("Test forward/forwardOnce method", () => {
   let foo, bar;
