@@ -1,10 +1,10 @@
 /*
- * @Author: Xavier Yin 
- * @Date: 2018-07-23 17:02:41 
- * @Last Modified by:   Xavier Yin 
- * @Last Modified time: 2018-07-23 17:02:41 
+ * @Author: Xavier Yin
+ * @Date: 2018-07-23 17:02:41
+ * @Last Modified by: Xavier Yin
+ * @Last Modified time: 2019-09-24 17:55:42
  */
-import ArmorEvents from "armor-events";
+import ArmorEvents from "../../dist/armor-events_0.1.5";
 
 describe("Test on/once method.", () => {
   let emitter;

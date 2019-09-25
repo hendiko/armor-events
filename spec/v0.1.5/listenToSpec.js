@@ -1,10 +1,10 @@
 /*
- * @Author: Xavier Yin 
- * @Date: 2018-07-23 17:02:23 
+ * @Author: Xavier Yin
+ * @Date: 2018-07-23 17:02:23
  * @Last Modified by: Xavier Yin
- * @Last Modified time: 2018-07-24 09:40:31
+ * @Last Modified time: 2019-09-24 17:55:22
  */
-import ArmorEvents from "armor-events";
+import ArmorEvents from "../../dist/armor-events_0.1.5";
 
 describe("Test listenTo/listenToOnce method", () => {
   let foo, bar;
