@@ -2,7 +2,7 @@
  * @Author: Xavier Yin
  * @Date: 2019-09-23 14:33:49
  * @Last Modified by: Xavier Yin
- * @Last Modified time: 2019-09-24 18:21:02
+ * @Last Modified time: 2019-10-01 00:56:01
  */
 
 import { makeEventList } from "./utils";
@@ -23,20 +23,19 @@ function doJob(job) {
   if (all) {
     triggerApi(owner, "all", [event, ...args]);
   } else {
-    let { handlers } = owner._armorEvents;
-    let { id, handle, handleType, ctx, once, listener } = handler;
-    // 如果此时 handler 仍然存在的话，表示该 handler 仍有效，因此需要执行 handle。
-    // 如果 handler 不存在表示该 handle 在执行前可能已经被删除。
-    if (handlers[id]) {
+    let { id, handle, handleType, ctx, once, listener, disabled } = handler;
+    // 如果 disabled 为假，则表示该 handle 仍然可用
+    if (!disabled) {
+      // 如果 once 为真，应首先销毁，然后执行回调函数。
+      if (once) {
+        destroyApi(owner, id);
+      }
       // 如果 handle 是回调函数
       if (handleType === 0) {
         handle.apply(ctx, args);
       } else {
         // 无论原事件是同步或异步触发，此处转发动作都使用同步触发。
         triggerApi(listener || owner, handle, args);
-      }
-      if (once) {
-        destroyApi(owner, id);
       }
     }
   }
