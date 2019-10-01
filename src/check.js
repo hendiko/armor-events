@@ -2,7 +2,7 @@
  * @Author: Xavier Yin
  * @Date: 2019-09-20 18:18:30
  * @Last Modified by: Xavier Yin
- * @Last Modified time: 2019-09-24 10:41:38
+ * @Last Modified time: 2019-10-01 00:57:26
  */
 import { uniqueId } from "./utils";
 
@@ -17,8 +17,6 @@ import { uniqueId } from "./utils";
  *
  * 在 events, handlers 中删除相关 handler，通过 listeners
  * 找到 listener, 移除相关绑定
- *
- *
  *
  */
 

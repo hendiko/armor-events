@@ -2,7 +2,7 @@
  * @Author: Xavier Yin
  * @Date: 2019-09-20 17:35:35
  * @Last Modified by: Xavier Yin
- * @Last Modified time: 2019-09-24 15:24:59
+ * @Last Modified time: 2019-10-01 15:53:57
  */
 
 import { keys } from "./utils";
@@ -46,6 +46,8 @@ function destroyApi(owner, handlerId) {
   let { id, handlers, events } = owner._armorEvents;
   let handler = handlers[handlerId];
   if (handler) {
+    // 标记 handler 已失效
+    handler.disabled = true;
     delete handlers[handlerId];
     let { event, listener } = handler;
     removeEvent(events, event, handlerId);
