@@ -2,7 +2,7 @@
  * @Author: Xavier Yin
  * @Date: 2019-09-20 17:32:35
  * @Last Modified by: Xavier Yin
- * @Last Modified time: 2019-10-01 00:51:07
+ * @Last Modified time: 2020-04-08 11:21:54
  *
  * armorEvents 结构：
  * {
@@ -141,7 +141,7 @@ const eventsApi = {
       trigger(this, events, args, true);
     }
     return this;
-  }
+  },
 };
 
 function extendApi(obj) {
@@ -151,10 +151,20 @@ function extendApi(obj) {
   return obj;
 }
 
-function ArmorEvents(obj) {
-  let type = typeof obj;
-  let _obj = obj && ("object" === type || "function" === type) ? obj : {};
-  return extendApi(_obj);
+/**
+ * 如果 ArmorEvents 作为构造函数调用，它不接受任何参数。
+ * 如果 ArmorEvents 作为函数调用，它接受一个 target 参数，表示将赋予 target 对象事件能力。
+ * @param {object|function} [target]
+ */
+function ArmorEvents(target) {
+  let newObj;
+  if (this instanceof ArmorEvents) {
+    newObj = this;
+  } else {
+    let type = typeof target;
+    newObj = target && ("object" === type || "function" === type) ? target : {};
+  }
+  return extendApi(newObj);
 }
 
 extendApi(ArmorEvents);
