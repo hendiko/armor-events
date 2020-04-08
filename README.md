@@ -41,7 +41,7 @@ let events = ArmorEvents();
 ```js
 // 将事件 Api 混入一个任意对象，使之具有操作事件的能力
 let foo = {
-  doSomething() {}
+  doSomething() {},
 };
 ArmorEvents(foo);
 ```
@@ -80,8 +80,8 @@ ArmorEvents.trigger("something");
 以下 `ArmorEvents` 使用方式都是可行的：
 
 ```js
-// 作为类，使用 new 操作符
-let bar = new ArmorEvents({ name: "bar" });
+// 作为类，使用 new 操作符。作为构造函数时，ArmorEvents 不接受任何参数。
+let bar = new ArmorEvents();
 // 作为工厂函数
 let bee = ArmorEvents({ name: "bee" });
 // 作为 Api Provider
