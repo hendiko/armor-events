@@ -13,7 +13,7 @@ Backbone.Events 不提供事件转发功能，而 ArmorEvents 提供了事件转
 ```js
 // 以下代码在 Backbone.Events 中会打印两遍 foo，
 // 而在 ArmorEvents 中只会打印一遍 foo。
-obj.on("all", function(event) {
+obj.on("all", function (event) {
   console.log(event);
 });
 obj.trigger("foo");
@@ -41,7 +41,7 @@ Backbone.Events 中将 `event` 参数值为否时视为等效，即空字符串�
 而在 ArmorEvents 中，只有 `event` 值为 `undefined` 或 `null` 时才会不限定事件解绑。
 
 ```js
-x.on("foo", function() {
+x.on("foo", function () {
   console.log(1);
 });
 
@@ -65,7 +65,7 @@ x.off(0); // 解绑事件名为 0 的事件
 在 ArmorEvents 中，`trigger(map:object, ...args)` 中的 `...args` 参数将作为公共参数传递给事件回调函数，公共参数位于事件参数之前。
 
 ```js
-obj.on("hello", function() {
+obj.on("hello", function () {
   console.log([...arguments].join(""));
 });
 obj.trigger({ hello: "Jhon" }, "Welcome!", " my friend "); // 打印 Welcome! my friend Jhon
