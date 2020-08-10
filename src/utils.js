@@ -2,7 +2,7 @@
  * @Author: Xavier Yin
  * @Date: 2019-09-20 15:57:07
  * @Last Modified by: Xavier Yin
- * @Last Modified time: 2019-09-24 18:16:18
+ * @Last Modified time: 2020-07-25 13:11:58
  */
 
 // 是否是 Symbol 对象
@@ -106,7 +106,13 @@ function uniqueId(salt) {
   return salt + cacheId[salt]++;
 }
 
+// 当前环境是否支持 Symbol 类型
+function canUseSymbol() {
+  return typeof Symbol === "function";
+}
+
 export {
+  canUseSymbol,
   includes,
   isFunction,
   isObject,
@@ -114,5 +120,5 @@ export {
   keys,
   makeEventList,
   noop,
-  uniqueId
+  uniqueId,
 };

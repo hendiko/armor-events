@@ -211,3 +211,11 @@ bar.off("hello");
 - `@param {...any} args` 任意参数
 
 触发事件并提供事件响应参数，所有事件响应是异步（使用 setTimeout）逐一调用。
+
+## channel(events)
+
+> v1.2.0+ 新增
+
+返回一个 `Channel` 对象。当前 ArmorEvents 实例的 `events` 事件被触发时，返回的 `channel` 实例方法的 `feed` 方法被调用，所接参数与 `events` 事件触发参数相同。
+
+> 点击查看 Channel 更多详情
