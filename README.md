@@ -1,221 +1,439 @@
-# 简介
+# armor-events
 
-`armor-events` 是一个为任意对象提供事件能力的 JavaScript 库。
+`armor-events` 是一个为任意对象提供事件能力的 JavaScript/TypeScript 库。它的接口受 Backbone Events 启发，同时增加了事件转发、异步触发和 `Channel` 数据通道。
 
-# 安装
+> 警告：`Channel` 及其相关 API 目前属于实验性能力。它的类名、方法名、参数签名、生命周期语义、pipe 传递行为和错误处理策略都可能在后续版本调整。调用者在生产环境或公共 API 中使用前，应自行评估兼容性风险。
 
-```js
+## 安装
+
+```bash
 npm install armor-events
 ```
 
-# 用法
+## 加载方式
 
-`armor-events` 提供了 8 个 Api 用于操作事件，分别是：
+ESM：
 
-| API             | 释义               |
-| --------------- | ------------------ |
-| `on`            | 事件绑定           |
-| `once`          | 一次性事件绑定     |
-| `listenTo`      | 事件监听           |
-| `listenToOnce`  | 一次性事件监听     |
-| `stopListening` | 停止事件监听       |
-| `off`           | 事件解绑           |
-| `trigger`       | 触发事件，同步响应 |
-| `triggerAsync`  | 触发事件，异步响应 |
+```ts
+import ArmorEvents, { Channel } from "armor-events";
+```
 
-`ArmorEvents` 使用方法主要分为两种：
-
-#### 一、创建纯事件对象
+CommonJS：
 
 ```js
+const ArmorEvents = require("armor-events");
+const { Channel } = require("armor-events");
+```
+
+浏览器全局变量：
+
+```html
+<script src="./dist/armor-events.umd.js"></script>
+<script>
+  const events = ArmorEvents();
+</script>
+```
+
+## 基本用法
+
+创建纯事件对象：
+
+```ts
 import ArmorEvents from "armor-events";
 
-// 创建一个可操作事件的对象
-let events = ArmorEvents();
+const events = ArmorEvents();
 ```
 
-像 `events` 这种纯事件对象，一般用来充当事件分发器。
+混入已有对象：
 
-#### 二、混入已有对象
-
-```js
-// 将事件 Api 混入一个任意对象，使之具有操作事件的能力
-let foo = {
-  doSomething() {},
+```ts
+const foo = {
+  count: 0,
+  add() {
+    this.count++;
+  },
 };
+
 ArmorEvents(foo);
-```
 
-操作事件示例：
-
-```js
-// 事件绑定
-let unbindSomeEvent = foo.on("some-event", foo.doSomething);
-
-// 事件监听
-let unbindAnotherEvent = foo.listenTo(events, "another-event", foo.doSomething);
-
-// foo.doSomething() 将被调用
-events.trigger("another-event");
-
-// 解除事件监听
-foo.stopListening(events, "another-event");
-// 或者调用解除监听函数
-unbindAnotherEvent();
-
-// 解除事件绑定
-foo.off("some-event");
-// 或者调用解绑函数解除绑定
-unbindSomeEvent();
-```
-
-> 注意：`armor-events` 提供的函数 `ArmorEvents(obj)` 本身具有事件能力，可以直接作为事件分发器使用。
-
-```js
-ArmorEvents.on("something", doSomething);
-
-ArmorEvents.trigger("something");
-```
-
-以下 `ArmorEvents` 使用方式都是可行的：
-
-```js
-// 作为类，使用 new 操作符。作为构造函数时，ArmorEvents 不接受任何参数。
-let bar = new ArmorEvents();
-// 作为工厂函数
-let bee = ArmorEvents({ name: "bee" });
-// 作为 Api Provider
-let noo = Object.assign({ name: "noo" }, ArmorEvents);
-```
-
-> 当 `ArmorEvents` 作为 Api Provider 时应注意，如果 `ArmorEvents` 已经充当了事件分发器，当使用 `Object.assign({}, ArmorEvents)` 时，`ArmorEvents` 自身已绑定的事件会一并复制到新对象上，因此应当避免 `ArmorEvents` 同时充当事件分发器和 Api Provider。
-
-# API
-
-## on(events, handles, ctx)
-
-- `@param {string|symbol|number|array|object} events` 事件名称
-- `@param {string|symbol|number|array|function} handles` 事件响应
-- `@param {object} [ctx]` 事件回调函数上下文
-
-在 `armor-events` 中，单个事件名称(event)只能是一个 Symbol 对象，或者是一个不含空格的非空字符串。单个事件响应(handle)只能是一个回调函数，或者是一个事件名称(event)。
-
-参数 `events` 可以是 string、symbol、number、array、object 中任意一种。它用来指定需要绑定的事件名称，它最终会转换成一个或多少事件名称(event)。
-
-| `events` 参数值                              | 转换后事件名称                                    |
-| -------------------------------------------- | ------------------------------------------------- |
-| "foo bar lee"                                | ["foo", "bar", "lee"]                             |
-| ["foo bar", Symbol(0), 100, ["hello world"]] | ["foo", "bar", Symbol(0), "100", "hello", "world] |
-
-> 如果参数 `events` 是一个 Plan Object，那么 `on` 接收的参数格式为 `on({[events]: handles}, ctx)`。
-
-参数 `handles` 可以是 string、symbol、number、array、function 中任意一种，无论是哪一个类型的参数，它最后都会转换为一个或多个事件名称或回调函数。
-
-如果 `handle` 是一个回调函数，当响应的事件被触发时，该回调函数会被调用。如果 `handle` 是一个事件名称，当响应的事件被触发时，事件参数会被转发到该 `handle` 事件上。
-
-```js
-foo.on("hello", [foo.doSomething, "world"]);
-
-// 此时 foo.doSomething 被调用，
-// 然后 foo 触发 "world" 事件，即 foo.trigger("world", 200);
-foo.trigger("hello", 200);
-```
-
-可选参数 `ctx` 用作 `handle` 为回调函数时的上下文。如果不传，则默认为当前 Api 的上下文。即上例中 `doSomething` 被调用时，上下文为 `foo`。
-
-`on()` 方法调用后返回一个函数，该函数是一个事件销毁函数，当调用该销毁函数时，本次进行的所有事件绑定都将被解除。
-
-```js
-// 绑定事件
-let destroy = foo.on("hello world", foo.doSomething);
-
-// 解绑事件
+const destroy = foo.on("add", foo.add);
+foo.trigger("add");
 destroy();
 ```
 
-## once(events, handles, ctx)
+作为构造函数：
 
-参数及用法与 `on` 相同，只是 `once()` 绑定的事件在被响应一次后会自动解绑。
-
-## listenTo(target, events, handles, ctx)
-
-必填参数 `target` 是被监听对象，作为被监听对象，它必须同样具有 ArmorEvents 事件 Api。
-
-当 `target` 对象上触发了指定的 `events`，要么作为回调函数的 handle 被调用，要么事件将转发到 `listener` 上。
-
-`listenTo()` 返回值是一个事件销毁函数。
-
-> 其他参数 `events`, `handles`, `ctx` 与 `on` Api 参数相同。
-
-```js
-let destroy = foo.listenTo(bar, "hello", [foo.doSomething, "world"]);
-
-bar.trigger("hello", 200);
-
-// 当事件触发后
-// foo.doSomething(200);
-// foo.trigger("world", 200);
-
-destroy(); // 解除所有监听
+```ts
+const events = new ArmorEvents();
+events.on("ready", () => {});
 ```
 
-## listenToOnce(target, events, handles, ctx)
+作为静态事件对象：
 
-参见 `listenTo` Api，事件响应一次后自动解除监听。
-
-## off(events, handles, ctx)
-
-- `@param {string|symbol|number|array} [events]`
-- `@param {string|symbol|number|array|function} [handles]`
-- `@param {object} [ctx]`
-
-可选参数 `events`, `handles`, `ctx` 是用来指定解绑事件的匹配条件， 如果它们为 `undefined` 或 `null`，则表示匹配任意条件。
-
-例如：
-
-```js
-// 表示被解除的事件必须同时满足以下条件：
-// 1. 事件名称必须是 "hello" 或 "world"；
-// 2. 事件响应必须是 foo.doSomething 函数；
-// 3. 事件回调上下文必须是 foo。
-foo.off("hello world", foo.doSomething, foo);
+```ts
+ArmorEvents.on("global-event", () => {});
+ArmorEvents.trigger("global-event");
 ```
 
-注意：`off()` 解除的事件绑定包含 `listener` 调用 `stopListening()` 的效果。
+> 注意：`ArmorEvents` 本身也可以绑定事件。如果再通过 `Object.assign({}, ArmorEvents)` 把它当作 API Provider 使用，已有内部事件状态也可能被复制到新对象上，应避免混用。
 
-```js
-foo.listenTo(bar, "hello", foo.doSomething);
+## 事件名和响应参数
 
-// bar 在解除自身所有的 hello 事件响应时，一并也解除了 foo 对 bar 的 hello 事件监听。
-bar.off("hello");
+单个事件名可以是：
+
+- 不含空白字符的非空字符串
+- `number`，会转换成字符串
+- `symbol`
+
+事件名参数可以是字符串、数字、symbol、数组或嵌套数组。
+
+```ts
+events.on("hello world", callback);
+events.on(["foo bar", Symbol("x"), 100], callback);
 ```
 
-## stopListening(target, events, handles, ctx)
+响应参数可以是函数，也可以是另一个事件名。响应是事件名时表示事件转发。
 
-停止监听。
+```ts
+events.on("request", "loading");
+events.on("loading", () => {
+  console.log("loading");
+});
 
-参数 `target` 被监听对象，如果 `target` 为 `undefined` 或 `null`，则针对所有被监听对象进行筛选。
+events.trigger("request");
+```
 
-> 其他参数 `events`, `handles`, `ctx` 与 `off` Api 同。
+## API
 
-## trigger(events, ...args)
+### `ArmorEvents(target?)`
 
-- `@param {string|symbol|number|array} events` 事件名称
-- `@param {...any} args` 任意参数
+签名：
 
-触发事件并提供事件响应参数，所有事件响应是同步逐一调用。
+```ts
+function ArmorEvents(target?: object | Function | null): ArmorEventsInstance;
+new ArmorEvents(): ArmorEventsInstance;
+```
 
-## triggerAsync(events, ...args)
+参数：
 
-- `@param {string|symbol|number|array} events` 事件名称
-- `@param {...any} args` 任意参数
+- `target`：可选。需要混入事件 API 的对象或函数。
 
-触发事件并提供事件响应参数，所有事件响应是异步（使用 setTimeout）逐一调用。
+返回值：
 
-## channel(events)
+- 调用 `ArmorEvents(target)` 时返回已混入事件 API 的对象。
+- 调用 `ArmorEvents()` 时返回新的纯事件对象。
+- 调用 `new ArmorEvents()` 时返回事件实例。
 
-> v1.2.0+ 新增
+示例：
 
-返回一个 `Channel` 对象。当前 ArmorEvents 实例的 `events` 事件被触发时，返回的 `channel` 实例方法的 `feed` 方法被调用，所接参数与 `events` 事件触发参数相同。
+```ts
+const a = ArmorEvents();
+const b = ArmorEvents({ name: "b" });
+const c = new ArmorEvents();
+```
 
-> 点击查看 Channel 更多详情
+### `on(events, handles, ctx?)`
+
+签名：
+
+```ts
+on(events: EventInput | EventMap, handles?: EventHandleInput, ctx?: any): () => void
+```
+
+参数：
+
+- `events`：事件名、事件名数组、嵌套数组，或事件 map。
+- `handles`：响应函数、转发事件名、数组或嵌套数组。`events` 为事件 map 时，该参数表示 `ctx`。
+- `ctx`：可选。函数响应的 `this` 上下文；不传时默认为当前事件对象。
+
+返回值：
+
+- 返回解绑函数。调用该函数会解除本次 `on` 创建的所有绑定。
+
+示例：
+
+```ts
+const destroy = events.on("hello world", (value) => {
+  console.log(value);
+});
+
+events.trigger("hello", 1);
+events.trigger("world", 2);
+
+destroy();
+```
+
+事件 map：
+
+```ts
+events.on({
+  hello: () => console.log("hello"),
+  world: () => console.log("world"),
+});
+```
+
+事件转发：
+
+```ts
+events.on("request", "loading");
+events.on("loading", () => console.log("loading"));
+events.trigger("request");
+```
+
+### `once(events, handles, ctx?)`
+
+签名：
+
+```ts
+once(events: EventInput | EventMap, handles?: EventHandleInput, ctx?: any): () => void
+```
+
+参数与 `on` 相同。
+
+返回值：
+
+- 返回解绑函数。
+
+行为：
+
+- 绑定的响应首次触发前会先自动解绑，然后再执行响应。
+
+示例：
+
+```ts
+events.once("ready", () => console.log("ready once"));
+
+events.trigger("ready");
+events.trigger("ready");
+```
+
+### `listenTo(target, events, handles, ctx?)`
+
+签名：
+
+```ts
+listenTo(
+  target: ArmorEventsInstance,
+  events: EventInput | EventMap,
+  handles?: EventHandleInput,
+  ctx?: any
+): () => void
+```
+
+参数：
+
+- `target`：被监听对象，必须具有 `armor-events` 事件 API。
+- `events`：被监听事件名、事件名数组、嵌套数组，或事件 map。
+- `handles`：响应函数、转发事件名、数组或嵌套数组。`events` 为事件 map 时，该参数表示 `ctx`。
+- `ctx`：可选。函数响应上下文；不传时默认为当前监听对象。
+
+返回值：
+
+- 返回解绑函数。调用该函数会解除本次监听。
+
+示例：
+
+```ts
+const listener = ArmorEvents();
+const target = ArmorEvents();
+
+const destroy = listener.listenTo(target, "change", (value) => {
+  console.log(value);
+});
+
+target.trigger("change", 1);
+destroy();
+```
+
+监听并转发到 listener 自身：
+
+```ts
+listener.listenTo(target, "change", "local-change");
+listener.on("local-change", () => console.log("forwarded"));
+
+target.trigger("change");
+```
+
+### `listenToOnce(target, events, handles, ctx?)`
+
+签名：
+
+```ts
+listenToOnce(
+  target: ArmorEventsInstance,
+  events: EventInput | EventMap,
+  handles?: EventHandleInput,
+  ctx?: any
+): () => void
+```
+
+参数与 `listenTo` 相同。
+
+返回值：
+
+- 返回解绑函数。
+
+行为：
+
+- 响应首次触发前会自动解除本次监听。
+
+示例：
+
+```ts
+listener.listenToOnce(target, "done", () => console.log("done once"));
+
+target.trigger("done");
+target.trigger("done");
+```
+
+### `off(events?, handles?, ctx?)`
+
+签名：
+
+```ts
+off(events?: EventInput | null, handles?: EventHandleInput | null, ctx?: any): this
+```
+
+参数：
+
+- `events`：可选。限定要解绑的事件名；`null` 或 `undefined` 表示不限定事件名。
+- `handles`：可选。限定要解绑的响应函数或转发事件名；`null` 或 `undefined` 表示不限定响应。
+- `ctx`：可选。限定上下文；`null` 或 `undefined` 表示不限定上下文。
+
+返回值：
+
+- 返回当前事件对象。
+
+示例：
+
+```ts
+events.off("change");
+events.off(null, callback);
+events.off(null, null, context);
+events.off();
+```
+
+注意：
+
+- `off()` 解除的事件如果来自其他对象的 `listenTo`，会同步清理监听者上的监听索引。
+
+### `stopListening(target?, events?, handles?, ctx?)`
+
+签名：
+
+```ts
+stopListening(
+  target?: ArmorEventsInstance | null,
+  events?: EventInput | null,
+  handles?: EventHandleInput | null,
+  ctx?: any
+): this
+```
+
+参数：
+
+- `target`：可选。限定被监听对象；不传时匹配所有被监听对象。
+- `events`：可选。限定事件名。
+- `handles`：可选。限定响应函数或转发事件名。
+- `ctx`：可选。限定上下文。
+
+返回值：
+
+- 返回当前监听对象。
+
+示例：
+
+```ts
+listener.stopListening(target, "change");
+listener.stopListening(target);
+listener.stopListening();
+```
+
+### `trigger(events, ...args)`
+
+签名：
+
+```ts
+trigger(events: EventInput, ...args: any[]): this
+```
+
+参数：
+
+- `events`：要触发的事件名、事件名数组或嵌套数组。
+- `args`：传给响应函数或转发事件的参数。
+
+返回值：
+
+- 返回当前事件对象。
+
+行为：
+
+- 同步逐一执行响应。
+- 触发非 `all` 事件后，会在同一对象上触发一次 `all` 事件，`all` 响应接收 `(eventName, ...args)`。
+
+示例：
+
+```ts
+events.on("all", (eventName, value) => {
+  console.log(eventName, value);
+});
+
+events.trigger("change", 1);
+```
+
+### `triggerAsync(events, ...args)`
+
+签名：
+
+```ts
+triggerAsync(events: EventInput, ...args: any[]): this
+```
+
+参数与 `trigger` 相同。
+
+返回值：
+
+- 返回当前事件对象。
+
+行为：
+
+- 使用 `setTimeout` 异步调度响应，不返回 Promise。
+
+示例：
+
+```ts
+events.triggerAsync("change", 1);
+```
+
+### `channel(events)`
+
+> 警告：`channel(events)` 是实验性 API。返回的 `Channel` 连接方式和解绑方式可能在后续版本调整。
+
+签名：
+
+```ts
+channel(events: EventInput): Channel
+```
+
+参数：
+
+- `events`：要接入 Channel 的事件名。
+
+返回值：
+
+- 返回新的 `Channel` 实例。
+
+示例：
+
+```ts
+const events = new ArmorEvents();
+const channel = events.channel("message");
+
+channel.onData((message) => {
+  console.log(message);
+});
+
+events.trigger("message", "hello");
+```
+
+更多 `Channel` API 见 [docs/Channel.md](./docs/Channel.md)。

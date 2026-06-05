@@ -1,97 +1,387 @@
 # Channel
 
-> v1.2.0+ 新增
+`Channel` 是 `armor-events` 提供的单一数据通道。它内部使用 `ArmorEvents` 管理 `data` 和 `pipe` 两个事件，向外提供 `feed`、`onData`、`pipe` 等数据流式 API。
 
-`Channel` 对象是一个单一事件渠道，它最主要的两个方法为 `feed` 和 `onData`。
+> 警告：`Channel` 及其全部 API 当前属于实验性能力。类名、方法名、参数签名、生命周期语义、同步/异步规则、pipe 传递行为、transform 规则、解绑方式和错误处理策略都可能在后续版本调整。调用者在生产环境或公共 API 中使用前，应自行评估兼容性风险。
 
-`channel.feed(...args)` 方法表示接收数据，当 channel 对象接收到数据后，则自动调用通过 `channel.onData(cb, ctx)` 方法绑定的回调函数。
+## 创建 Channel
 
-## 使用方法
+ESM：
 
-通过全局加载 `armor-events` 文件，使用全局变量 `ArmorEvents` 访问 `Channel`。
-
-```js
-const channel = new ArmorEvents.Channel();
-```
-
-通过 CommonJS 加载。
-
-```js
-const { Channel } = require("armor-events");
-
-const channel = new Channel();
-```
-
-通过 ES6 加载。
-
-```js
+```ts
 import { Channel } from "armor-events";
 
 const channel = new Channel();
 ```
 
-通过 ArmorEvents 对象获取。
+CommonJS：
 
 ```js
+const ArmorEvents = require("armor-events");
+
+const channel = new ArmorEvents.Channel();
+```
+
+通过事件对象创建：
+
+```ts
 import ArmorEvents from "armor-events";
 
-const armorEvents = new ArmorEvents();
-
-// 只有 ArmorEvents 实例才拥有 `channel(events)` 方法。
-const channel = armorEvents.channel("some_event_names");
+const events = new ArmorEvents();
+const channel = events.channel("message");
 ```
 
 ## API
 
-### canPipe(subchannel:Channel):Boolean
+### `new Channel()`
 
-返回 `true` 或 `false` 表示是否可以使用 `channel.pipe(subchannel)` 方法来与目标 channel 对象建立数据管道。
+> 警告：构造方式和公开属性可能在后续版本调整。
 
-每个 Channel 对象最多只能有一个 upstream 管道，`channel.upstream` 属性指向它的上游 channel 或 armorEvents 对象。
+签名：
 
-Channel 可以拥有不限数量的 downstream 管道，但所有 channel 管道之间不能存在循环传递数据，该方法会自动检查 subchannel 以及 subchannel 的 subchannel 与当前 channel 之间的关系，如果会造成循环传递数据，则本方法返回 false。
+```ts
+new Channel(): Channel
+```
 
-### clean():Channel
+返回值：
 
-解除所有 onData 绑定的回调函数，解除所有与其他 channel 对象之间的管道，包括 upstream 和 downstream 管道。
+- 返回新的单一数据通道。
 
-该方法等价于 `channel.detach().unpipe().off()`。
+示例：
 
-> upstream 管道是指其他 channel 或 armorEvents 对象传递数据至本 channel 对象的管道。
-> downstream 管道是指本 channel 传递数据给其他 channel 对象的管道。
+```ts
+const channel = new Channel();
+```
 
-### detach():Channel
+### `canPipe(subchannel)`
 
-解除 upstream 管道，不再自动接收来自上游 Channel 或 ArmorEvents 对象的数据。
+> 警告：当前实现中非法 pipe 场景可能抛异常；后续返回/异常语义可能调整。
 
-### feed(...args):Channel
+签名：
 
-手动接收数据，同步依次触发 onData 绑定的回调函数，然后再同步依次传递数据至下游 Channel 对象。
+```ts
+canPipe(subchannel: Channel): boolean
+```
 
-### feedAsync(...args):Channel
+参数：
 
-手动接收数据，但异步触发 onData 绑定的回调函数或者传递数据至下游 Channel 对象。
+- `subchannel`：准备作为下游的 Channel。
 
-### onData(cb:function, ctx?:any):function
+返回值：
 
-绑定回调函数 `cb`，当 channel 对象收到数据时触发该回调函数。如果给出可选参数 `ctx` ，它将作为回调函数被调用时的上下文。
+- 理论上返回是否可以建立管道。
 
-返回一个 destroy 函数，调用该 destory 函数表示解除本次 onData 绑定。
+注意：
 
-### onceData(cb:function, ctx?:any):function
+- 当前实现中，非法 pipe 场景会透传内部异常，而不是始终返回布尔值。这里保持现有行为。
 
-`onData` 的一次性操作，当回调函数 `cb` 被调用一次时，自动解除本次绑定。
+示例：
 
-### off(cb?:function, ctx?:any):Channel
+```ts
+if (channel.canPipe(nextChannel)) {
+  channel.pipe(nextChannel);
+}
+```
 
-解除所有 `data` 事件回调（即通过 onData 方法绑定的回调函数）。
+### `clean()`
 
-如果给出了 cb 或 ctx，则它们所匹配的 onData 绑定将被解除，如果 cb 或 ctx 为 null 或 undefined，则表示可以匹配任意的 cb 和 ctx。
+> 警告：清理范围和生命周期语义可能在后续版本调整。
 
-### pipe(subchannel:Channel, transform?:function):Channel
+签名：
 
-与目标 subchannel 建立数据管道，数据将从本 Channel 对象传递到目标 Subchannel。如果给定可选参数 transform 函数，该函数将接收当前 channel 接收到的数据作为参数值，而该函数的返回值将作为目标 channel 的接收数据。
+```ts
+clean(): Channel
+```
 
-### unpipe(...subchannels:array<Channel>):Channel
+返回值：
 
-断开本 Channel 对象与指定下游 Channel 之间的数据管道。如果未指定任何 subchannel，则表示断开当前 channel 的所有 downstream 管道。
+- 返回当前 Channel。
+
+行为：
+
+- 等价于 `channel.detach().unpipe().off()`。
+- 解除 upstream、所有 downstream，以及所有 `onData` 绑定。
+
+示例：
+
+```ts
+channel.clean();
+```
+
+### `detach()`
+
+> 警告：对 ArmorEvents upstream 和 Channel upstream 的解绑策略可能在后续版本调整。
+
+签名：
+
+```ts
+detach(): Channel
+```
+
+返回值：
+
+- 返回当前 Channel。
+
+行为：
+
+- 断开当前 Channel 与 upstream 的连接。
+- upstream 可以是另一个 Channel，也可以是通过 `ArmorEvents.prototype.channel()` 连接的事件对象。
+
+示例：
+
+```ts
+channel.detach();
+```
+
+### `feed(...args)`
+
+> 警告：同步触发顺序、pipe 联动和参数传递规则可能在后续版本调整。
+
+签名：
+
+```ts
+feed(...args: any[]): Channel
+```
+
+参数：
+
+- `args`：传给 `onData` 回调和 downstream Channel 的数据。
+
+返回值：
+
+- 返回当前 Channel。
+
+行为：
+
+- 同步触发当前 Channel 的 `data` 响应。
+- 同步触发 pipe 传递。
+
+示例：
+
+```ts
+channel.onData((a, b) => {
+  console.log(a, b);
+});
+
+channel.feed(1, 2);
+```
+
+### `feedAsync(...args)`
+
+> 警告：当前不返回 Promise；后续异步语义可能调整。
+
+签名：
+
+```ts
+feedAsync(...args: any[]): Channel
+```
+
+参数：
+
+- `args`：传给 `onData` 回调和 downstream Channel 的数据。
+
+返回值：
+
+- 返回当前 Channel。
+
+行为：
+
+- 使用 `triggerAsync` 异步触发 `data` 和 `pipe` 响应。
+- 不返回 Promise。
+
+示例：
+
+```ts
+channel.feedAsync("hello");
+```
+
+### `onData(cb, ctx?)`
+
+> 警告：命名、上下文语义和返回的解绑函数形式可能在后续版本调整。
+
+签名：
+
+```ts
+onData(cb: (...args: any[]) => any, ctx?: any): () => void
+```
+
+参数：
+
+- `cb`：接收数据的回调函数。
+- `ctx`：可选。回调函数上下文。
+
+返回值：
+
+- 返回解绑函数。
+
+示例：
+
+```ts
+const off = channel.onData(function (value) {
+  console.log(this, value);
+}, context);
+
+channel.feed(1);
+off();
+```
+
+### `onceData(cb, ctx?)`
+
+> 警告：解绑时机、上下文语义和返回值形式可能在后续版本调整。
+
+签名：
+
+```ts
+onceData(cb: (...args: any[]) => any, ctx?: any): () => void
+```
+
+参数：
+
+- `cb`：接收数据的回调函数。
+- `ctx`：可选。回调函数上下文。
+
+返回值：
+
+- 返回解绑函数。
+
+行为：
+
+- 回调首次触发后自动解绑。
+
+示例：
+
+```ts
+channel.onceData((value) => {
+  console.log(value);
+});
+
+channel.feed(1);
+channel.feed(2);
+```
+
+### `off(cb?, ctx?)`
+
+> 警告：当前只解除 data 回调，不解除 pipe/downstream/upstream；后续清理范围可能调整。
+
+签名：
+
+```ts
+off(cb?: ((...args: any[]) => any) | null, ctx?: any): Channel
+```
+
+参数：
+
+- `cb`：可选。限定要解绑的 `onData`/`onceData` 回调；`null` 或 `undefined` 表示不限定回调。
+- `ctx`：可选。限定上下文；`null` 或 `undefined` 表示不限定上下文。
+
+返回值：
+
+- 返回当前 Channel。
+
+行为：
+
+- 只解除 data 回调，不解除 pipe/downstream/upstream。
+
+示例：
+
+```ts
+channel.off(callback);
+channel.off(null, context);
+channel.off();
+```
+
+### `pipe(subchannel, transform?)`
+
+> 警告：transform 语义、同步/异步传递规则、环路检查和错误处理策略可能在后续版本调整。
+
+签名：
+
+```ts
+pipe(subchannel: Channel, transform?: (...args: any[]) => any): Channel
+```
+
+参数：
+
+- `subchannel`：下游 Channel。
+- `transform`：可选。转换函数，接收当前 Channel feed 的参数。
+
+返回值：
+
+- 返回当前 Channel。
+
+行为：
+
+- 未传 `transform` 时，原样把所有参数传给下游 `subchannel.feed(...args)`。
+- 传入 `transform` 时，执行 `Promise.resolve(transform(...args)).then((val) => subchannel.feed(val))`，下游只接收 transform 返回的单个值。
+
+示例：
+
+```ts
+const source = new Channel();
+const target = new Channel();
+
+target.onData((value) => {
+  console.log(value);
+});
+
+source.pipe(target, (value) => value + 1);
+source.feed(1);
+```
+
+### `unpipe(...subchannels)`
+
+> 警告：参数匹配方式和 downstream 清理策略可能在后续版本调整。
+
+签名：
+
+```ts
+unpipe(...subchannels: Channel[]): Channel
+```
+
+参数：
+
+- `subchannels`：可选。要断开的下游 Channel。不传时断开全部 downstream。
+
+返回值：
+
+- 返回当前 Channel。
+
+示例：
+
+```ts
+source.unpipe(target);
+source.unpipe();
+```
+
+## 管道链示例
+
+```ts
+const c1 = new Channel();
+const c2 = new Channel();
+const c3 = new Channel();
+
+c1.pipe(c2).pipe(c3);
+
+c3.onData((value) => {
+  console.log(value);
+});
+
+c1.feed("hello");
+```
+
+## 从 ArmorEvents 接入 Channel
+
+> 警告：`events.channel(eventNames)` 的连接方式和解绑方式可能在后续版本调整。
+
+```ts
+const events = new ArmorEvents();
+const channel = events.channel("message");
+
+channel.onData((message) => {
+  console.log(message);
+});
+
+events.trigger("message", "hello");
+
+channel.detach();
+```
